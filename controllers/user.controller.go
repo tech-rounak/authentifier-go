@@ -13,6 +13,7 @@ import (
 	"github.com/tech-rounak/jwt-authentication/database"
 	helper "github.com/tech-rounak/jwt-authentication/helpers"
 	"github.com/tech-rounak/jwt-authentication/models"
+	"github.com/tech-rounak/jwt-authentication/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -47,7 +48,7 @@ func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		fmt.Printf("Login Handler....")
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
-	
+
 		var user models.User
 		var foundUser models.User
 
@@ -59,7 +60,7 @@ func Login() gin.HandlerFunc {
 		filter := bson.M{"email": user.Email}
 		err := userCollection.FindOne(ctx, filter).Decode(&foundUser)
 		defer cancel()
-		
+
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "email or password is incorrect "})
 			return
@@ -85,10 +86,48 @@ func Login() gin.HandlerFunc {
 	}
 }
 
+func UploadImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		form, err := c.MultipartForm()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		files := form.File["file"]
+		url := ""
+		for key, file := range files {
+			url, err = utils.SaveFile(file, key)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+		userId := c.GetString("UserId")
+		var updateObj primitive.D
+		updateObj = append(updateObj, bson.E{"url", url})
+		filter := bson.M{"userId": userId}
+
+		_, err = userCollection.UpdateOne(
+			ctx,
+			filter,
+			bson.D{
+				{"$set", updateObj},
+			},
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"msg": "Image Update Failed"})
+		}
+		c.JSON(http.StatusAccepted, gin.H{"msg": "updated image successfully"})
+
+	}
+}
 func Signup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		fmt.Printf("Signup Handler....")
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+
 		var user models.User
 
 		if err := c.BindJSON(&user); err != nil {
@@ -107,7 +146,7 @@ func Signup() gin.HandlerFunc {
 		defer cancel()
 
 		if err != nil {
-			log.Panic(err)
+			// log.Panic(err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -118,7 +157,7 @@ func Signup() gin.HandlerFunc {
 		defer cancel()
 
 		if err != nil {
-			log.Panic(err)
+			// log.Panic(err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}

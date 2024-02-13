@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/tech-rounak/jwt-authentication/service"
 )
 
 func SaveFile(fileHeader *multipart.FileHeader, key int) (string, error) {
-	// fmt.Println(fileHeader.Filename)
+
 	src, err := fileHeader.Open()
 	if err != nil {
 		return "", err
@@ -22,6 +23,7 @@ func SaveFile(fileHeader *multipart.FileHeader, key int) (string, error) {
 	s3Client := s3.NewFromConfig(*cfg)
 	bucketName := "blinkit-task1"
 	bucketKey := fileHeader.Filename
+	bucketKey = strings.ReplaceAll(bucketKey, " ", "-")
 	_, err = s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: &bucketName,
 		Key:    &bucketKey,

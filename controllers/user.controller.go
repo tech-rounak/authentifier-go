@@ -99,6 +99,7 @@ func UploadImage() gin.HandlerFunc {
 		url := ""
 		for key, file := range files {
 			url, err = utils.SaveFile(file, key)
+			fmt.Println("url", url)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -119,7 +120,7 @@ func UploadImage() gin.HandlerFunc {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"msg": "Image Update Failed"})
 		}
-		c.JSON(http.StatusAccepted, gin.H{"msg": "updated image successfully"})
+		c.JSON(http.StatusAccepted, gin.H{"msg": "updated image successfully", url: url})
 
 	}
 }
@@ -148,6 +149,10 @@ func Signup() gin.HandlerFunc {
 		if err != nil {
 			// log.Panic(err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "duplicate email "})
 			return
 		}
 
